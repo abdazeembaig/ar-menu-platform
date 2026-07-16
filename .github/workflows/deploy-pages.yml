@@ -1,4 +1,4 @@
-name: Deploy static menu to GitHub Pages
+name: Publish static menu to GitHub Pages
 
 on:
   push:
@@ -7,19 +7,14 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
-  group: pages
-  cancel-in-progress: false
+  group: gh-pages
+  cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  publish:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -30,15 +25,21 @@ jobs:
           mkdir _site
           cp index.html _site/index.html
           cp standalone-ar-menu.html _site/standalone-ar-menu.html
+          touch _site/.nojekyll
 
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Publish gh-pages branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin gh-pages || true
+          if git show-ref --verify --quiet refs/remotes/origin/gh-pages; then
+            git worktree add _deploy origin/gh-pages
+          else
+            git worktree add --orphan gh-pages _deploy
+          fi
+          find _deploy -mindepth 1 -maxdepth 1 ! -name ".git" -exec rm -rf {} +
+          cp -R _site/. _deploy/
+          cd _deploy
+          git add .
+          git commit -m "Deploy static menu" || exit 0
+          git push origin HEAD:gh-pages
