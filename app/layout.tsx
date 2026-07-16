@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { CartProvider } from "@/components/cart/cart-provider";
 import { LocaleProvider } from "@/components/layout/locale-provider";
+import { PwaRegister } from "@/components/layout/pwa-register";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -38,7 +39,10 @@ export default function RootLayout({
     <html lang="en" dir="ltr" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full bg-background text-primary">
         <LocaleProvider>
-          <CartProvider>{children}</CartProvider>
+          <CartProvider>
+            <PwaRegister />
+            {children}
+          </CartProvider>
         </LocaleProvider>
       </body>
     </html>

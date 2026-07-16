@@ -101,6 +101,7 @@ export interface MenuItem {
   preparationTimeMinutes: number;
   calories?: number;
   portion: LocalizedString;
+  plateSize?: LocalizedString;
   has3DModel: boolean;
   hasAR: boolean;
   threeDAsset?: ThreeDAsset;
@@ -118,6 +119,8 @@ export interface ItemVariant {
 export interface ModifierGroup {
   id: string;
   name: LocalizedString;
+  required: boolean;
+  selectionType: "single" | "multi";
   minSelections: number;
   maxSelections: number;
   options: ModifierOption[];
@@ -128,6 +131,7 @@ export interface ModifierOption {
   name: LocalizedString;
   priceDelta: number;
   available: boolean;
+  default?: boolean;
 }
 
 export interface ThreeDAsset {
@@ -137,6 +141,7 @@ export interface ThreeDAsset {
   posterImageUrl: string;
   attribution?: string;
   scaleHint?: string;
+  arScale?: "fixed" | "auto";
 }
 
 export interface FeatureFlags {
@@ -145,11 +150,13 @@ export interface FeatureFlags {
 }
 
 export interface Cart {
+  restaurantSlug: string;
   sessionId: string;
   tableCode: string;
   items: CartItem[];
   serviceChargeRate: number;
   taxRate: number;
+  submittedOrderId?: string;
 }
 
 export interface CartItem {
@@ -171,6 +178,7 @@ export interface OrderItem extends CartItem {
 
 export interface Order {
   id: string;
+  orderNumber: string;
   sessionId: string;
   tableCode: string;
   status: OrderStatus;
@@ -179,6 +187,10 @@ export interface Order {
   serviceCharge: number;
   tax: number;
   total: number;
+  submittedAt: string;
+  estimatedResponseMinutes: number;
+  estimatedPreparationMinutes?: number;
+  restaurantMessage: LocalizedString;
   timeline: OrderTimelineEvent[];
 }
 
@@ -196,4 +208,32 @@ export interface MenuPageData {
   table: Table;
   session: TableSession;
   menu: Menu;
+}
+
+export interface SubmitOrderInput {
+  sessionId: string;
+  tableCode: string;
+  items: CartItem[];
+  subtotal: number;
+  serviceCharge: number;
+  tax: number;
+  total: number;
+  tableNote?: string;
+}
+
+export interface ServiceRequest {
+  id: string;
+  sessionId: string;
+  tableCode: string;
+  type: "general" | "water" | "cutlery" | "issue";
+  note?: string;
+  createdAt: string;
+}
+
+export interface BillRequest {
+  id: string;
+  sessionId: string;
+  tableCode: string;
+  total: number;
+  createdAt: string;
 }

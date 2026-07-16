@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useCart } from "@/components/cart/cart-provider";
 
 interface SessionCartConfigurerProps {
+  restaurantSlug: string;
   sessionId: string;
   tableCode: string;
   serviceChargeRate: number;
@@ -11,6 +12,7 @@ interface SessionCartConfigurerProps {
 }
 
 export function SessionCartConfigurer({
+  restaurantSlug,
   sessionId,
   tableCode,
   serviceChargeRate,
@@ -23,8 +25,8 @@ export function SessionCartConfigurer({
       return;
     }
 
-    configureCart(sessionId, tableCode, serviceChargeRate, taxRate);
-  }, [configureCart, hydrated, serviceChargeRate, sessionId, tableCode, taxRate]);
+    configureCart(restaurantSlug, sessionId, tableCode, serviceChargeRate, taxRate);
+  }, [configureCart, hydrated, restaurantSlug, serviceChargeRate, sessionId, tableCode, taxRate]);
 
   return null;
 }

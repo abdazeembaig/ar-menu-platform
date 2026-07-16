@@ -1,4 +1,5 @@
 import type { Cart, CartItem } from "@/types/domain";
+import type { Locale } from "@/types/domain";
 
 export interface CartTotals {
   subtotal: number;
@@ -24,6 +25,9 @@ export function calculateCartTotals(cart: Cart): CartTotals {
   return { subtotal, serviceCharge, tax, total, itemCount };
 }
 
-export function formatMoney(value: number): string {
-  return `${value.toFixed(2)} LYD`;
+export function formatMoney(value: number, locale: Locale = "en"): string {
+  return `${new Intl.NumberFormat(locale === "ar" ? "ar-LY" : "en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value)} LYD`;
 }

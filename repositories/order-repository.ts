@@ -19,7 +19,7 @@ export class MockOrderRepository implements OrderRepository {
     const now = new Date();
     const timeline = timelineStatuses.map((status, index) => {
       const at = new Date(now.getTime() - (timelineStatuses.length - index) * 6 * 60_000);
-      const completed = index <= 2;
+      const completed = index === 0;
 
       return {
         status,
@@ -34,12 +34,20 @@ export class MockOrderRepository implements OrderRepository {
       id: `order_${sessionId}`,
       sessionId,
       tableCode,
-      status: "preparing",
+      orderNumber: "BC-2026-1024",
+      status: "submitted",
       items: [],
       subtotal: 0,
       serviceCharge: 0,
       tax: 0,
       total: 0,
+      submittedAt: now.toISOString(),
+      estimatedResponseMinutes: 3,
+      estimatedPreparationMinutes: 18,
+      restaurantMessage: {
+        en: "Awaiting restaurant confirmation.",
+        ar: "بانتظار تأكيد المطعم.",
+      },
       timeline,
     };
   }

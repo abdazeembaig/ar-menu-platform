@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import { BadgeCheck, Flame, Leaf, Plus, ScanSearch } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { useLocale } from "@/components/layout/locale-provider";
@@ -15,9 +16,20 @@ interface MenuItemCardProps {
 }
 
 export function MenuItemCard({ item, href }: MenuItemCardProps) {
-  const { addItem } = useCart();
+  const { addItem, removeItem } = useCart();
   const { locale, t } = useLocale();
+  const [lastLineId, setLastLineId] = useState<string | null>(null);
   const unavailable = !item.available;
+  const defaultVariant = item.variants.find((variant) => variant.default);
+  const defaultModifiers = item.modifierGroups.flatMap((group) =>
+    group.options.filter((option) => option.default && option.available).slice(0, group.selectionType === "single" ? 1 : group.maxSelections),
+  );
+  const lineId = [
+    item.id,
+    defaultVariant?.id ?? "base",
+    defaultModifiers.map((modifier) => modifier.id).sort().join("-"),
+    "",
+  ].join(":");
 
   return (
     <article
@@ -49,7 +61,7 @@ export function MenuItemCard({ item, href }: MenuItemCardProps) {
               {getText(item.name, locale)}
             </h3>
           </Link>
-          <p className="shrink-0 text-sm font-extrabold text-primary">{formatMoney(item.price)}</p>
+          <p className="shrink-0 text-sm font-extrabold text-primary">{formatMoney(item.price, locale)}</p>
         </div>
         <p className="line-clamp-2 text-sm leading-5 text-muted">{getText(item.shortDescription, locale)}</p>
         <div className="flex flex-wrap items-center gap-1.5 text-[11px] font-bold">
@@ -78,12 +90,31 @@ export function MenuItemCard({ item, href }: MenuItemCardProps) {
         <button
           type="button"
           disabled={unavailable}
-          onClick={() => addItem({ item, quantity: 1, variant: item.variants.find((variant) => variant.default) })}
+          onClick={() => {
+            if (addItem({ item, quantity: 1, variant: defaultVariant, modifiers: defaultModifiers })) {
+              setLastLineId(lineId);
+            }
+          }}
           className="touch-target mt-auto inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-bold text-white transition hover:bg-accent disabled:cursor-not-allowed disabled:bg-zinc-300 disabled:text-zinc-600 sm:w-auto"
         >
           <Plus aria-hidden="true" size={16} />
           {t("quickAdd")}
         </button>
+        {lastLineId ? (
+          <div className="rounded-2xl bg-accent/10 px-3 py-2 text-xs font-bold text-accent" role="status" aria-live="polite">
+            {t("addedToCart")} ·{" "}
+            <button
+              type="button"
+              onClick={() => {
+                removeItem(lastLineId);
+                setLastLineId(null);
+              }}
+              className="underline"
+            >
+              {t("undo")}
+            </button>
+          </div>
+        ) : null}
       </div>
     </article>
   );

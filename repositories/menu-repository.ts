@@ -13,6 +13,10 @@ export class MockMenuRepository implements MenuRepository {
     }
 
     const normalizedTableCode = tableCode.toUpperCase();
+    if (normalizedTableCode !== mockTable.code) {
+      return null;
+    }
+
     const table = {
       ...mockTable,
       code: normalizedTableCode,

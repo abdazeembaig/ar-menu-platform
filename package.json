@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
+    "build:pages": "next build --webpack",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.mjs",
     "start": "next start",
     "lint": "eslint"
   },
@@ -24,6 +26,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",
+    "tsx": "^4.23.1",
     "typescript": "^5"
   }
 }

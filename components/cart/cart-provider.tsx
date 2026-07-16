@@ -16,14 +16,23 @@ interface CartContextValue {
   cart: Cart;
   totals: CartTotals;
   hydrated: boolean;
-  configureCart: (sessionId: string, tableCode: string, serviceChargeRate: number, taxRate: number) => void;
+  configureCart: (
+    restaurantSlug: string,
+    sessionId: string,
+    tableCode: string,
+    serviceChargeRate: number,
+    taxRate: number,
+  ) => void;
   addItem: (input: AddCartItemInput) => boolean;
   removeItem: (lineId: string) => void;
+  updateLine: (lineId: string, patch: Partial<Pick<CartItem, "variant" | "modifiers" | "specialInstructions">>) => void;
   updateQuantity: (lineId: string, quantity: number) => void;
   clearCart: () => void;
+  lockSubmittedCart: (orderId: string) => void;
 }
 
 const defaultCart: Cart = {
+  restaurantSlug: "brunch-cafe",
   sessionId: "demo",
   tableCode: "T12",
   items: [],
@@ -31,7 +40,9 @@ const defaultCart: Cart = {
   taxRate: 0.02,
 };
 
-const storageKey = "ar-menu-cart";
+function storageKey(restaurantSlug: string, tableCode: string, sessionId: string) {
+  return `ar-menu-cart:${restaurantSlug}:${tableCode}:${sessionId}`;
+}
 
 const CartContext = createContext<CartContextValue | null>(null);
 
@@ -41,12 +52,23 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
-      const stored = window.localStorage.getItem(storageKey);
+      const legacyStored = window.localStorage.getItem("ar-menu-cart");
+      if (legacyStored) {
+        window.localStorage.removeItem("ar-menu-cart");
+      }
+      const stored = window.localStorage.getItem(
+        storageKey(defaultCart.restaurantSlug, defaultCart.tableCode, defaultCart.sessionId),
+      );
       if (stored) {
         try {
-          setCart(JSON.parse(stored) as Cart);
+          const parsed = JSON.parse(stored) as Cart;
+          if (Array.isArray(parsed.items)) {
+            setCart(parsed);
+          }
         } catch {
-          window.localStorage.removeItem(storageKey);
+          window.localStorage.removeItem(
+            storageKey(defaultCart.restaurantSlug, defaultCart.tableCode, defaultCart.sessionId),
+          );
         }
       }
       setHydrated(true);
@@ -57,20 +79,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (hydrated) {
-      window.localStorage.setItem(storageKey, JSON.stringify(cart));
+      window.localStorage.setItem(storageKey(cart.restaurantSlug, cart.tableCode, cart.sessionId), JSON.stringify(cart));
     }
   }, [cart, hydrated]);
 
   const configureCart = useCallback((
+    restaurantSlug: string,
     sessionId: string,
     tableCode: string,
     serviceChargeRate: number,
     taxRate: number,
   ) => {
     setCart((current) => {
-      if (current.sessionId === sessionId) {
+      if (
+        current.restaurantSlug === restaurantSlug &&
+        current.sessionId === sessionId &&
+        current.tableCode === tableCode
+      ) {
         if (
-          current.tableCode === tableCode &&
           current.serviceChargeRate === serviceChargeRate &&
           current.taxRate === taxRate
         ) {
@@ -80,7 +106,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return { ...current, tableCode, serviceChargeRate, taxRate };
       }
 
-      return { sessionId, tableCode, serviceChargeRate, taxRate, items: [] };
+      const nextKey = storageKey(restaurantSlug, tableCode, sessionId);
+      const stored = window.localStorage.getItem(nextKey);
+      if (stored) {
+        try {
+          const parsed = JSON.parse(stored) as Cart;
+          if (Array.isArray(parsed.items)) {
+            return { ...parsed, restaurantSlug, sessionId, tableCode, serviceChargeRate, taxRate };
+          }
+        } catch {
+          window.localStorage.removeItem(nextKey);
+        }
+      }
+
+      return { restaurantSlug, sessionId, tableCode, serviceChargeRate, taxRate, items: [] };
     });
   }, []);
 
@@ -151,7 +190,21 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     }));
   }, []);
 
+  const updateLine = useCallback((
+    lineId: string,
+    patch: Partial<Pick<CartItem, "variant" | "modifiers" | "specialInstructions">>,
+  ) => {
+    setCart((current) => ({
+      ...current,
+      items: current.items.map((item) => (item.lineId === lineId ? { ...item, ...patch } : item)),
+    }));
+  }, []);
+
   const clearCart = useCallback(() => setCart((current) => ({ ...current, items: [] })), []);
+  const lockSubmittedCart = useCallback(
+    (orderId: string) => setCart((current) => ({ ...current, submittedOrderId: orderId })),
+    [],
+  );
 
   const totals = useMemo(() => calculateCartTotals(cart), [cart]);
 
@@ -163,10 +216,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       configureCart,
       addItem,
       removeItem,
+      updateLine,
       updateQuantity,
       clearCart,
+      lockSubmittedCart,
     }),
-    [addItem, cart, clearCart, configureCart, hydrated, removeItem, totals, updateQuantity],
+    [addItem, cart, clearCart, configureCart, hydrated, lockSubmittedCart, removeItem, totals, updateLine, updateQuantity],
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

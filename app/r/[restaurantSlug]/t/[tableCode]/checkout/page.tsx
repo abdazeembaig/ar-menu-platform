@@ -1,20 +1,19 @@
 import { notFound } from "next/navigation";
-import { OrderStatusPage } from "@/components/order/order-status-page";
+import { CheckoutPage } from "@/components/checkout/checkout-page";
 import { getMenuPageData } from "@/services/menu-service";
-import { getLatestOrder } from "@/services/order-service";
 
 export function generateStaticParams() {
   return [{ restaurantSlug: "brunch-cafe", tableCode: "T12" }];
 }
 
-interface OrderStatusRouteProps {
+interface CheckoutRouteProps {
   params: Promise<{
     restaurantSlug: string;
     tableCode: string;
   }>;
 }
 
-export default async function OrderStatusRoute({ params }: OrderStatusRouteProps) {
+export default async function CheckoutRoute({ params }: CheckoutRouteProps) {
   const { restaurantSlug, tableCode } = await params;
   const data = await getMenuPageData(restaurantSlug, tableCode);
 
@@ -22,7 +21,5 @@ export default async function OrderStatusRoute({ params }: OrderStatusRouteProps
     notFound();
   }
 
-  const order = await getLatestOrder(data.session.id, data.table.code);
-
-  return <OrderStatusPage data={data} order={order} />;
+  return <CheckoutPage data={data} />;
 }

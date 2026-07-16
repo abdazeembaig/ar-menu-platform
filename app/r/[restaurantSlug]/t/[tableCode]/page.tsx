@@ -2,6 +2,10 @@ import { notFound } from "next/navigation";
 import { MenuExperience } from "@/components/menu/menu-experience";
 import { getMenuPageData } from "@/services/menu-service";
 
+export function generateStaticParams() {
+  return [{ restaurantSlug: "brunch-cafe", tableCode: "T12" }];
+}
+
 interface MenuPageProps {
   params: Promise<{
     restaurantSlug: string;

@@ -13,6 +13,9 @@ import { useLocale } from "@/components/layout/locale-provider";
 import { formatMoney } from "@/lib/cart-math";
 import { getText } from "@/lib/i18n";
 import type { MenuItem, MenuPageData } from "@/types/domain";
+import { defaultModifiersForItem, toggleModifierOption, validateModifierSelections } from "@/lib/modifiers";
+import { TableContext } from "@/components/layout/table-context";
+import { getAllergenName } from "@/lib/allergens";
 
 interface ItemDetailProps {
   data: MenuPageData;
@@ -25,14 +28,13 @@ export function ItemDetail({ data, item }: ItemDetailProps) {
   const { addItem } = useCart();
   const [quantity, setQuantity] = useState(1);
   const [variantId, setVariantId] = useState(item.variants.find((variant) => variant.default)?.id ?? item.variants[0]?.id);
-  const [modifierIds, setModifierIds] = useState<string[]>([]);
+  const [selectedModifiers, setSelectedModifiers] = useState(() => defaultModifiersForItem(item));
   const [instructions, setInstructions] = useState("");
+  const [validationMessage, setValidationMessage] = useState("");
   const basePath = `/r/${restaurant.slug}/t/${table.code}`;
 
   const selectedVariant = item.variants.find((variant) => variant.id === variantId);
-  const selectedModifiers = item.modifierGroups.flatMap((group) =>
-    group.options.filter((option) => modifierIds.includes(option.id)),
-  );
+  const modifierErrors = validateModifierSelections(item, selectedModifiers);
   const unitTotal = item.price + (selectedVariant?.priceDelta ?? 0) + selectedModifiers.reduce((sum, modifier) => sum + modifier.priceDelta, 0);
   const lineTotal = unitTotal * quantity;
 
@@ -45,23 +47,20 @@ export function ItemDetail({ data, item }: ItemDetailProps) {
     [item.calories, item.portion, item.preparationTimeMinutes, locale, t],
   );
 
-  const toggleModifier = (optionId: string, maxSelections: number) => {
-    setModifierIds((current) => {
-      if (current.includes(optionId)) {
-        return current.filter((id) => id !== optionId);
-      }
-
-      if (current.length >= maxSelections) {
-        return [...current.slice(1), optionId];
-      }
-
-      return [...current, optionId];
-    });
+  const handleAdd = () => {
+    if (modifierErrors.length) {
+      setValidationMessage(t("validationRequiredModifiers"));
+      return;
+    }
+    if (addItem({ item, quantity, variant: selectedVariant, modifiers: selectedModifiers, specialInstructions: instructions })) {
+      setValidationMessage(t("addedToCart"));
+    }
   };
 
   return (
     <main className="min-h-screen pb-32">
       <SessionCartConfigurer
+        restaurantSlug={restaurant.slug}
         sessionId={session.id}
         tableCode={table.code}
         serviceChargeRate={branch.serviceChargeRate}
@@ -75,6 +74,7 @@ export function ItemDetail({ data, item }: ItemDetailProps) {
           </Link>
           <LanguageSelector />
         </div>
+        <TableContext restaurant={restaurant} branch={branch} table={table} locale={locale} tableLabel={t("table")} />
 
         <article className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr]">
           <div className="space-y-4">
@@ -94,7 +94,6 @@ export function ItemDetail({ data, item }: ItemDetailProps) {
                 </div>
               ) : null}
             </div>
-            <DishModelViewer asset={item.threeDAsset} flags={restaurant.featureFlags} />
           </div>
 
           <div className="space-y-6">
@@ -105,7 +104,7 @@ export function ItemDetail({ data, item }: ItemDetailProps) {
                 {item.spicyLevel > 0 ? <span className="rounded-full bg-red-50 px-3 py-1 text-red-700">{t("spicy")} {item.spicyLevel}</span> : null}
               </div>
               <h1 className="text-3xl font-black leading-tight sm:text-5xl">{getText(item.name, locale)}</h1>
-              <p className="text-2xl font-black text-accent">{formatMoney(item.price)}</p>
+              <p className="text-2xl font-black text-accent">{formatMoney(item.price, locale)}</p>
               <p className="text-base leading-7 text-muted">{getText(item.description, locale)}</p>
             </header>
 
@@ -134,7 +133,21 @@ export function ItemDetail({ data, item }: ItemDetailProps) {
 
             <section className="space-y-3">
               <h2 className="text-lg font-black">{t("allergens")}</h2>
-              <p className="text-sm font-semibold text-muted">{item.allergens.length ? item.allergens.join(", ") : "-"}</p>
+              <p className="text-sm font-semibold text-muted">{item.allergens.length ? item.allergens.map((allergen) => getAllergenName(allergen, locale)).join(", ") : "-"}</p>
+            </section>
+
+            <section className="grid gap-3">
+              <div className="flex flex-wrap gap-2">
+                <ARLaunchButton asset={item.threeDAsset} flags={restaurant.featureFlags} className="flex-1" />
+                <button
+                  type="button"
+                  className="touch-target flex-1 rounded-full border border-border bg-surface px-4 text-sm font-extrabold"
+                  onClick={() => document.getElementById("dish-model-viewer")?.scrollIntoView({ behavior: "smooth" })}
+                >
+                  {t("viewIn3D")}
+                </button>
+              </div>
+              <DishModelViewer asset={item.threeDAsset} flags={restaurant.featureFlags} />
             </section>
 
             {item.variants.length ? (
@@ -145,7 +158,7 @@ export function ItemDetail({ data, item }: ItemDetailProps) {
                     <label key={variant.id} className="flex cursor-pointer items-center justify-between rounded-2xl border border-border bg-surface p-4">
                       <span className="font-bold">{getText(variant.name, locale)}</span>
                       <span className="flex items-center gap-3 text-sm font-extrabold">
-                        {variant.priceDelta ? formatMoney(variant.priceDelta) : formatMoney(0)}
+                        {variant.priceDelta ? formatMoney(variant.priceDelta, locale) : formatMoney(0, locale)}
                         <input
                           type="radio"
                           name="variant"
@@ -163,18 +176,30 @@ export function ItemDetail({ data, item }: ItemDetailProps) {
 
             {item.modifierGroups.map((group) => (
               <fieldset key={group.id} className="space-y-3">
-                <legend className="text-lg font-black">{getText(group.name, locale)}</legend>
+                <legend className="text-lg font-black">
+                  {getText(group.name, locale)} · {group.required ? t("required") : t("optional")}
+                </legend>
+                <p className="text-sm font-semibold text-muted">
+                  {t("chooseAtLeast")} {group.minSelections}. {t("chooseUpTo")} {group.maxSelections}.
+                </p>
                 <div className="grid gap-2">
                   {group.options.map((option) => (
                     <label key={option.id} className={`flex items-center justify-between rounded-2xl border border-border bg-surface p-4 ${option.available ? "cursor-pointer" : "opacity-50"}`}>
-                      <span className="font-bold">{getText(option.name, locale)}</span>
+                      <span className="font-bold">
+                        {getText(option.name, locale)}
+                        {!option.available ? <span className="ms-2 text-xs text-red-700">{t("unavailableOption")}</span> : null}
+                      </span>
                       <span className="flex items-center gap-3 text-sm font-extrabold">
-                        {formatMoney(option.priceDelta)}
+                        {formatMoney(option.priceDelta, locale)}
                         <input
-                          type="checkbox"
-                          checked={modifierIds.includes(option.id)}
+                          type={group.selectionType === "single" ? "radio" : "checkbox"}
+                          name={group.id}
+                          checked={selectedModifiers.some((modifier) => modifier.id === option.id)}
                           disabled={!option.available}
-                          onChange={() => toggleModifier(option.id, group.maxSelections)}
+                          onChange={() => {
+                            setSelectedModifiers((current) => toggleModifierOption(group, current, option));
+                            setValidationMessage("");
+                          }}
                           className="size-5 rounded accent-[var(--color-accent)]"
                         />
                       </span>
@@ -195,10 +220,6 @@ export function ItemDetail({ data, item }: ItemDetailProps) {
             </label>
 
             <div className="hidden items-center gap-3 md:flex">
-              <ARLaunchButton asset={item.threeDAsset} flags={restaurant.featureFlags} />
-              <button type="button" className="touch-target inline-flex items-center justify-center gap-2 rounded-full border border-border bg-surface px-4 text-sm font-extrabold">
-                {t("viewIn3D")}
-              </button>
             </div>
           </div>
         </article>
@@ -218,16 +239,19 @@ export function ItemDetail({ data, item }: ItemDetailProps) {
           <button
             type="button"
             disabled={!item.available}
-            onClick={() => addItem({ item, quantity, variant: selectedVariant, modifiers: selectedModifiers, specialInstructions: instructions })}
+            onClick={handleAdd}
             className="touch-target flex flex-1 items-center justify-between rounded-full bg-primary px-5 text-sm font-extrabold text-white disabled:bg-zinc-300 disabled:text-zinc-600"
           >
             <span className="inline-flex items-center gap-2">
               <ShoppingBag aria-hidden="true" size={18} />
               {item.available ? t("addToOrder") : t("unavailableItem")}
             </span>
-            <span>{formatMoney(lineTotal)}</span>
+            <span>{formatMoney(lineTotal, locale)}</span>
           </button>
         </div>
+        <p className="mx-auto mt-2 max-w-3xl text-sm font-bold text-accent" aria-live="polite">
+          {validationMessage}
+        </p>
       </div>
     </main>
   );
