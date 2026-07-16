@@ -19,6 +19,8 @@
   },
   "devDependencies": {
     "@babel/core": "^8.0.1",
+    "@emnapi/core": "^1.11.2",
+    "@emnapi/runtime": "^1.11.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
