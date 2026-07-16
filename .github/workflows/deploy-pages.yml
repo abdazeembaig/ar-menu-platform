@@ -35,7 +35,7 @@ jobs:
           if git show-ref --verify --quiet refs/remotes/origin/gh-pages; then
             git worktree add _deploy origin/gh-pages
           else
-            git worktree add --orphan gh-pages _deploy
+            git worktree add --orphan -b gh-pages _deploy
           fi
           find _deploy -mindepth 1 -maxdepth 1 ! -name ".git" -exec rm -rf {} +
           cp -R _site/. _deploy/
