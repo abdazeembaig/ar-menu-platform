@@ -136,12 +136,21 @@ export interface ModifierOption {
 
 export interface ThreeDAsset {
   id: string;
+  enabled?: boolean;
   glbUrl?: string;
+  viewerUrl?: string;
   usdzUrl?: string;
+  posterUrl?: string;
   posterImageUrl: string;
   attribution?: string;
   scaleHint?: string;
   arScale?: "fixed" | "auto";
+  arPlacement?: "floor" | "wall";
+  realWorldWidthMeters?: number;
+  realWorldHeightMeters?: number;
+  status?: "ready" | "processing" | "coming_soon" | "error";
+  source?: string;
+  scaleCorrection?: string;
 }
 
 export interface FeatureFlags {

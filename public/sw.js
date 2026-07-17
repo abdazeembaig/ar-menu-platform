@@ -1,11 +1,13 @@
-const CACHE_NAME = "ar-menu-platform-shell-v1";
+const CACHE_NAME = "ar-menu-platform-shell-v3";
 const APP_SHELL = [
   "/ar-menu-platform/",
   "/ar-menu-platform/r/brunch-cafe/t/T12/",
   "/ar-menu-platform/offline/",
   "/ar-menu-platform/logo.svg",
   "/ar-menu-platform/manifest.webmanifest",
-  "/ar-menu-platform/models/demo-dish.glb"
+  "/ar-menu-platform/models/brunch-cafe/classic-smash-burger/viewer.html",
+  "/ar-menu-platform/models/brunch-cafe/classic-smash-burger/model.glb",
+  "/ar-menu-platform/models/brunch-cafe/classic-smash-burger/poster.webp"
 ];
 
 self.addEventListener("install", (event) => {

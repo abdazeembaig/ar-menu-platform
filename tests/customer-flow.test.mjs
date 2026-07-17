@@ -15,6 +15,7 @@ const { calculateCartTotals } = await import("../lib/cart-math.ts");
 const { getDirection, dictionaries } = await import("../lib/i18n.ts");
 const { defaultModifiersForItem, toggleModifierOption, validateModifierSelections } = await import("../lib/modifiers.ts");
 const { mockItems } = await import("../data/mock-menu.ts");
+const { withAssetBasePath } = await import("../lib/asset-path.ts");
 const { getMenuPageData } = await import("../services/menu-service.ts");
 const { submitMockOrder, submitServiceRequest, submitBillRequest } = await import("../services/client-order-service.ts");
 
@@ -78,6 +79,22 @@ test("search and filters find spicy vegetarian pasta", () => {
     return text.includes("penne") && item.vegetarian && item.spicyLevel > 0 && !item.allergens.includes("Dairy");
   });
   assert.deepEqual(result.map((item) => item.id), ["arrabbiata-penne"]);
+});
+
+test("RealityScan asset is scoped to the Classic Smash Burger", () => {
+  const burger = mockItems.find((candidate) => candidate.id === "classic-smash-burger");
+  assert.equal(burger.has3DModel, true);
+  assert.equal(burger.threeDAsset.glbUrl, "/models/brunch-cafe/classic-smash-burger/model.glb");
+  assert.equal(burger.threeDAsset.viewerUrl, "/models/brunch-cafe/classic-smash-burger/viewer.html");
+  assert.equal(burger.threeDAsset.realWorldWidthMeters, 0.28);
+  assert.equal(burger.threeDAsset.arScale, "fixed");
+
+  const otherScanItems = mockItems.filter((item) => item.id !== "classic-smash-burger" && item.threeDAsset?.glbUrl?.includes("classic-smash-burger"));
+  assert.equal(otherScanItems.length, 0);
+});
+
+test("asset paths preserve local public URLs", () => {
+  assert.equal(withAssetBasePath("/models/brunch-cafe/classic-smash-burger/model.glb"), "/models/brunch-cafe/classic-smash-burger/model.glb");
 });
 
 test("mock order success and failure", async () => {

@@ -1,10 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import type { CSSProperties, ElementType, Ref } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Box, Expand, Loader2, RotateCcw, TriangleAlert, X } from "lucide-react";
 import { useLocale } from "@/components/layout/locale-provider";
+import { withAssetBasePath } from "@/lib/asset-path";
 import type { FeatureFlags, ThreeDAsset } from "@/types/domain";
 
 interface DishModelViewerProps {
@@ -13,81 +13,47 @@ interface DishModelViewerProps {
 }
 
 type ViewerState = "disabled" | "missing" | "loading" | "ready" | "error";
-type ModelViewerElementProps = {
-  ref?: Ref<HTMLElement>;
-  src?: string;
-  poster?: string;
-  "camera-controls"?: boolean;
-  "touch-action"?: string;
-  "disable-tap"?: boolean;
-  ar?: boolean;
-  loading?: "auto" | "lazy" | "eager";
-  reveal?: "auto" | "interaction" | "manual";
-  "interaction-prompt"?: string;
-  style?: CSSProperties;
-  onLoad?: () => void;
-  onError?: () => void;
-  "aria-label"?: string;
-};
-
-const ModelViewerElement = "model-viewer" as ElementType<ModelViewerElementProps>;
 
 export function DishModelViewer({ asset, flags }: DishModelViewerProps) {
   const { t } = useLocale();
-  const [scriptReady, setScriptReady] = useState(
-    () => typeof customElements !== "undefined" && Boolean(customElements.get("model-viewer")),
-  );
   const [state, setState] = useState<ViewerState>("loading");
+  const [attempt, setAttempt] = useState(0);
   const [fullscreen, setFullscreen] = useState(false);
-  const viewerRef = useRef<HTMLElement | null>(null);
+  const frameRef = useRef<HTMLIFrameElement | null>(null);
 
-  useEffect(() => {
-    if (!flags.threeDEnabled || !asset?.glbUrl) {
-      return;
-    }
-
-    const existing = document.querySelector<HTMLScriptElement>('script[data-model-viewer="true"]');
-    if (existing) {
-      existing.addEventListener("load", () => setScriptReady(true), { once: true });
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.type = "module";
-    script.src = "https://ajax.googleapis.com/ajax/libs/model-viewer/4.1.0/model-viewer.min.js";
-    script.dataset.modelViewer = "true";
-    script.addEventListener("load", () => setScriptReady(true), { once: true });
-    script.addEventListener("error", () => setState("error"), { once: true });
-    document.head.appendChild(script);
-  }, [asset?.glbUrl, flags.threeDEnabled]);
-
-  const modelSrc = asset?.glbUrl ? withBasePath(asset.glbUrl) : undefined;
-  const posterSrc = asset?.posterImageUrl;
+  const modelSrc = withAssetBasePath(asset?.glbUrl);
+  const viewerSrc = withAssetBasePath(asset?.viewerUrl);
+  const posterSrc = withAssetBasePath(asset?.posterImageUrl ?? asset?.posterUrl);
   const displayedState: ViewerState = !flags.threeDEnabled ? "disabled" : asset?.glbUrl ? state : "missing";
-  const canRenderModel = flags.threeDEnabled && asset?.glbUrl && scriptReady && state !== "error";
+  const canRenderModel = flags.threeDEnabled && Boolean(asset?.glbUrl) && Boolean(viewerSrc) && state !== "error";
   const label = asset?.attribution ?? t("technicalModelLabel");
 
-  const viewer = (
-    <div className="relative min-h-[300px] overflow-hidden rounded-[var(--radius-brand)] border border-border bg-surface" id="dish-model-viewer">
+  const retryModel = () => {
+    setState("loading");
+    setAttempt((current) => current + 1);
+  };
+
+  const resetCamera = () => {
+    const viewer = frameRef.current?.contentWindow?.document.querySelector("model-viewer");
+    viewer?.setAttribute("camera-orbit", "35deg 58deg 0.32m");
+  };
+
+  const renderViewer = (isFullscreen = false) => (
+    <div className="relative min-h-[300px] overflow-hidden rounded-[var(--radius-brand)] border border-border bg-surface" id={isFullscreen ? "dish-model-viewer-fullscreen" : "dish-model-viewer"}>
       {posterSrc ? (
         <Image src={posterSrc} alt={t("posterFallback")} fill sizes="100vw" className="object-cover opacity-20" />
       ) : null}
       {canRenderModel ? (
-        <ModelViewerElement
-          ref={viewerRef}
-          src={modelSrc}
-          poster={posterSrc}
-          camera-controls
-          touch-action="pan-y"
-          disable-tap
-          ar={false}
-          loading="lazy"
-          reveal="interaction"
-          interaction-prompt="none"
-          style={{ width: "100%", height: fullscreen ? "75vh" : "360px", position: "relative", zIndex: 1 }}
+        <iframe
+          key={`${attempt}-${isFullscreen ? "full" : "inline"}`}
+          ref={frameRef}
+          title={label}
+          src={`${viewerSrc}?v=${attempt}`}
+          className="relative z-10 block w-full border-0 bg-[#f7f1ea]"
+          style={{ height: isFullscreen ? "75vh" : "360px" }}
+          allow="xr-spatial-tracking; fullscreen; accelerometer; gyroscope; camera"
           onLoad={() => setState("ready")}
           onError={() => setState("error")}
-          aria-label={label}
         />
       ) : (
         <div className="relative z-10 grid min-h-[300px] place-items-center p-6 text-center">
@@ -98,7 +64,18 @@ export function DishModelViewer({ asset, flags }: DishModelViewerProps) {
             <h2 className="text-lg font-black text-primary">
               {displayedState === "disabled" ? t("featureDisabled") : displayedState === "missing" ? t("missingModel") : displayedState === "error" ? t("modelError") : t("loadingModel")}
             </h2>
-            <p className="mt-2 text-sm leading-6 text-muted">{t("modelFallbackHint")}</p>
+            <p className="mt-2 text-sm leading-6 text-muted">
+              {displayedState === "loading" ? `${t("loadingProgress")} 0%` : t("modelFallbackHint")}
+            </p>
+            {displayedState === "error" ? (
+              <button
+                type="button"
+                onClick={retryModel}
+                className="touch-target mt-4 rounded-full bg-primary px-4 text-sm font-extrabold text-white"
+              >
+                {t("retryModel")}
+              </button>
+            ) : null}
           </div>
         </div>
       )}
@@ -107,7 +84,7 @@ export function DishModelViewer({ asset, flags }: DishModelViewerProps) {
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={() => viewerRef.current?.setAttribute("camera-orbit", "0deg 75deg 2.5m")}
+            onClick={resetCamera}
             className="touch-target grid place-items-center rounded-full border border-border"
             aria-label={t("resetCamera")}
           >
@@ -123,12 +100,13 @@ export function DishModelViewer({ asset, flags }: DishModelViewerProps) {
           </button>
         </div>
       </div>
+      {modelSrc ? <span className="sr-only">{modelSrc}</span> : null}
     </div>
   );
 
   return (
     <>
-      {viewer}
+      {renderViewer()}
       {fullscreen ? (
         <div className="fixed inset-0 z-50 bg-primary/80 p-4" role="dialog" aria-modal="true" aria-label={t("viewIn3D")}>
           <div className="mx-auto max-w-4xl">
@@ -140,19 +118,10 @@ export function DishModelViewer({ asset, flags }: DishModelViewerProps) {
             >
               <X aria-hidden="true" size={20} />
             </button>
-            {viewer}
+            {renderViewer(true)}
           </div>
         </div>
       ) : null}
     </>
   );
-}
-
-function withBasePath(path: string) {
-  if (typeof window === "undefined" || path.startsWith("http")) {
-    return path;
-  }
-
-  const base = window.location.pathname.startsWith("/ar-menu-platform") ? "/ar-menu-platform" : "";
-  return `${base}${path}`;
 }

@@ -31,20 +31,28 @@ export function ItemDetail({ data, item }: ItemDetailProps) {
   const [selectedModifiers, setSelectedModifiers] = useState(() => defaultModifiersForItem(item));
   const [instructions, setInstructions] = useState("");
   const [validationMessage, setValidationMessage] = useState("");
+  const [viewerOpen, setViewerOpen] = useState(false);
   const basePath = `/r/${restaurant.slug}/t/${table.code}`;
 
   const selectedVariant = item.variants.find((variant) => variant.id === variantId);
   const modifierErrors = validateModifierSelections(item, selectedModifiers);
   const unitTotal = item.price + (selectedVariant?.priceDelta ?? 0) + selectedModifiers.reduce((sum, modifier) => sum + modifier.priceDelta, 0);
   const lineTotal = unitTotal * quantity;
+  const readyModel = item.has3DModel && item.threeDAsset?.status === "ready" && Boolean(item.threeDAsset.glbUrl);
+  const plateDiameter = item.threeDAsset?.realWorldWidthMeters
+    ? `${Math.round(item.threeDAsset.realWorldWidthMeters * 100)} cm`
+    : item.plateSize
+      ? getText(item.plateSize, locale)
+      : undefined;
 
   const meta = useMemo(
     () => [
       { label: t("prepTime"), value: `${item.preparationTimeMinutes} ${t("minutes")}`, icon: Timer },
       { label: t("calories"), value: item.calories ? `${item.calories}` : "-", icon: Utensils },
       { label: t("portion"), value: getText(item.portion, locale), icon: Utensils },
+      ...(plateDiameter ? [{ label: t("plateDiameter"), value: plateDiameter, icon: Utensils }] : []),
     ],
-    [item.calories, item.portion, item.preparationTimeMinutes, locale, t],
+    [item.calories, item.portion, item.preparationTimeMinutes, locale, plateDiameter, t],
   );
 
   const handleAdd = () => {
@@ -100,6 +108,7 @@ export function ItemDetail({ data, item }: ItemDetailProps) {
             <header className="space-y-3">
               <div className="flex flex-wrap items-center gap-2 text-xs font-extrabold">
                 {item.featured ? <span className="rounded-full bg-accent/10 px-3 py-1 text-accent">{t("featured")}</span> : null}
+                {readyModel ? <span className="rounded-full bg-primary px-3 py-1 text-white">{t("threeDAvailable")}</span> : null}
                 {item.vegetarian ? <span className="rounded-full bg-emerald-50 px-3 py-1 text-emerald-700">{t("vegetarian")}</span> : null}
                 {item.spicyLevel > 0 ? <span className="rounded-full bg-red-50 px-3 py-1 text-red-700">{t("spicy")} {item.spicyLevel}</span> : null}
               </div>
@@ -137,17 +146,38 @@ export function ItemDetail({ data, item }: ItemDetailProps) {
             </section>
 
             <section className="grid gap-3">
-              <div className="flex flex-wrap gap-2">
-                <ARLaunchButton asset={item.threeDAsset} flags={restaurant.featureFlags} className="flex-1" />
-                <button
-                  type="button"
-                  className="touch-target flex-1 rounded-full border border-border bg-surface px-4 text-sm font-extrabold"
-                  onClick={() => document.getElementById("dish-model-viewer")?.scrollIntoView({ behavior: "smooth" })}
-                >
-                  {t("viewIn3D")}
-                </button>
-              </div>
-              <DishModelViewer asset={item.threeDAsset} flags={restaurant.featureFlags} />
+              {readyModel ? (
+                <>
+                  <div className="rounded-[var(--radius-brand)] border border-border bg-surface p-4">
+                    <p className="text-sm font-black text-primary">{t("threeDAvailable")}</p>
+                    <p className="mt-1 text-sm font-semibold text-muted">
+                      {plateDiameter ? `${t("plateDiameter")}: ${plateDiameter}. ` : ""}
+                      {t("approximateServingSize")}
+                    </p>
+                    {item.threeDAsset?.source ? (
+                      <p className="mt-1 text-xs font-bold text-muted">{t("realityScanSource")}: {item.threeDAsset.source}</p>
+                    ) : null}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      className="touch-target flex-1 rounded-full border border-border bg-surface px-4 text-sm font-extrabold"
+                      onClick={() => {
+                        setViewerOpen(true);
+                        window.setTimeout(() => document.getElementById("dish-model-viewer")?.scrollIntoView({ behavior: "smooth" }), 0);
+                      }}
+                    >
+                      {t("viewIn3D")}
+                    </button>
+                    <ARLaunchButton asset={item.threeDAsset} flags={restaurant.featureFlags} className="flex-1" />
+                  </div>
+                  {viewerOpen ? <DishModelViewer asset={item.threeDAsset} flags={restaurant.featureFlags} /> : null}
+                </>
+              ) : (
+                <div className="rounded-[var(--radius-brand)] border border-dashed border-border bg-surface p-5 text-sm font-semibold text-muted">
+                  {t("missingModel")}
+                </div>
+              )}
             </section>
 
             {item.variants.length ? (

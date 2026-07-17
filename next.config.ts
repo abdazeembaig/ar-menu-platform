@@ -7,6 +7,9 @@ const nextConfig: NextConfig = {
   trailingSlash: true,
   basePath: isPagesBuild ? "/ar-menu-platform" : undefined,
   assetPrefix: isPagesBuild ? "/ar-menu-platform/" : undefined,
+  env: {
+    NEXT_PUBLIC_BASE_PATH: isPagesBuild ? "/ar-menu-platform" : "",
+  },
   images: {
     unoptimized: true,
     remotePatterns: [

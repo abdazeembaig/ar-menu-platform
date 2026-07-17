@@ -1,8 +1,9 @@
 "use client";
 
 import { Box, ScanLine } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocale } from "@/components/layout/locale-provider";
+import { absoluteAssetUrl } from "@/lib/asset-path";
 import type { FeatureFlags, ThreeDAsset } from "@/types/domain";
 
 interface ARLaunchButtonProps {
@@ -14,9 +15,18 @@ interface ARLaunchButtonProps {
 export function ARLaunchButton({ asset, flags, className }: ARLaunchButtonProps) {
   const { t } = useLocale();
   const [message, setMessage] = useState("");
-  const support = useMemo(() => getArSupport(asset), [asset]);
+  const [mounted, setMounted] = useState(false);
+  const [support, setSupport] = useState(() => ({ href: "", rel: undefined as string | undefined, label: "" }));
 
-  if (!flags.arEnabled || !asset || !support.href) {
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setMounted(true);
+      setSupport(getArSupport(asset));
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [asset]);
+
+  if (!mounted || !flags.arEnabled || !asset || isUnavailableAsset(asset) || !support.href) {
     return (
       <button
         type="button"
@@ -46,7 +56,7 @@ export function ARLaunchButton({ asset, flags, className }: ARLaunchButtonProps)
 }
 
 function getArSupport(asset?: ThreeDAsset) {
-  if (typeof window === "undefined" || typeof navigator === "undefined" || !asset) {
+  if (typeof window === "undefined" || typeof navigator === "undefined" || !asset || isUnavailableAsset(asset)) {
     return { href: "", rel: undefined, label: "" };
   }
 
@@ -72,11 +82,6 @@ function getArSupport(asset?: ThreeDAsset) {
   return { href: "", rel: undefined, label: "" };
 }
 
-function absoluteAssetUrl(path: string) {
-  if (path.startsWith("http")) {
-    return path;
-  }
-
-  const basePath = window.location.pathname.startsWith("/ar-menu-platform") ? "/ar-menu-platform" : "";
-  return `${window.location.origin}${basePath}${path}`;
+function isUnavailableAsset(asset: ThreeDAsset) {
+  return Boolean(asset.status && asset.status !== "ready");
 }
