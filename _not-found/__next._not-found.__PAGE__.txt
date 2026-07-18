@@ -1,0 +1,7 @@
+1:"$Sreact.fragment"
+2:I[38437,["500","static/chunks/500-e2a7ab501ac40f90.js","437","static/chunks/437-bc6fc72b13cb4e33.js","345","static/chunks/app/not-found-9f41ff78c31fd0f2.js"],"Image"]
+3:I[98500,["500","static/chunks/500-e2a7ab501ac40f90.js","437","static/chunks/437-bc6fc72b13cb4e33.js","345","static/chunks/app/not-found-9f41ff78c31fd0f2.js"],""]
+4:I[90484,[],"OutletBoundary"]
+5:"$Sreact.suspense"
+0:{"rsc":["$","$1","c",{"children":[["$","main",null,{"className":"app-shell grid min-h-screen place-items-center py-12","children":["$","section",null,{"className":"max-w-md rounded-[var(--radius-brand)] border border-border bg-surface p-6 text-center shadow-sm","children":[["$","$L2",null,{"src":"/logo.svg","alt":"","width":64,"height":64,"className":"mx-auto rounded-2xl"}],["$","h1",null,{"className":"mt-5 text-2xl font-black","children":"Invalid QR code"}],["$","p",null,{"className":"mt-2 text-sm leading-6 text-muted","children":"This restaurant or table could not be resolved. Please ask the restaurant team for a fresh table QR code."}],["$","$L3",null,{"href":"/r/brunch-cafe/t/T12/","className":"mt-6 inline-flex min-h-11 items-center rounded-full bg-primary px-5 text-sm font-extrabold text-white","children":"Open demo table"}]]}]}],null,["$","$L4",null,{"children":["$","$5",null,{"name":"Next.MetadataOutlet","children":"$@6"}]}]]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"0o3o721e8fH2feyMXeNjN"}
+6:null
