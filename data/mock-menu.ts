@@ -1,4 +1,4 @@
-import type { Branch, Category, Menu, MenuItem, Restaurant, Table } from "@/types/domain";
+import type { Branch, Category, Menu, MenuItem, QrTemplateSettings, Restaurant, Table } from "@/types/domain";
 
 const imageBase = "https://images.unsplash.com";
 
@@ -37,11 +37,59 @@ export const mockBranch: Branch = {
   taxRate: 0.02,
 };
 
-export const mockTable: Table = {
-  id: "table_t12",
-  branchId: mockBranch.id,
-  code: "T12",
-  number: "12",
+export const mockTables: Table[] = Array.from({ length: 12 }, (_, index) => {
+  const number = String(index + 1);
+  const code = `T${number}`;
+  return {
+    id: `table_t${number}`,
+    branchId: mockBranch.id,
+    code,
+    number,
+    name: { en: `Table ${number}`, ar: `طاولة ${number}` },
+    area: { en: index < 6 ? "Main dining" : "Terrace", ar: index < 6 ? "الصالة الرئيسية" : "الشرفة" },
+    status: index === 11 ? "order_active" : "available",
+    active: true,
+    qrGeneratedAt: "2026-07-18T20:00:00.000Z",
+    qrPrintedAt: index < 4 ? "2026-07-18T20:20:00.000Z" : undefined,
+  };
+});
+
+export const mockTable: Table = mockTables[11];
+
+export const defaultQrTemplate: QrTemplateSettings = {
+  id: "standard-table-card",
+  restaurantId: mockRestaurant.id,
+  templateName: "Standard Table Card",
+  logoUrl: mockRestaurant.logoUrl,
+  restaurantName: mockRestaurant.name,
+  slogan: { en: "A Taste to Remember", ar: "طعم لا ينسى" },
+  heading: { en: "Scan to Order", ar: "امسح رمز QR للطلب" },
+  instructionText: {
+    en: "Scan the QR code to explore our menu and order directly from your table.",
+    ar: "امسح الرمز لاستعراض قائمة الطعام والطلب مباشرة من طاولتك.",
+  },
+  footerText: {
+    en: "No app required. Simply scan with your phone camera.",
+    ar: "لا تحتاج إلى تحميل أي تطبيق. امسح الرمز بكاميرا الهاتف.",
+  },
+  primaryColor: mockRestaurant.theme.accentColor,
+  backgroundColor: mockRestaurant.theme.backgroundColor,
+  textColor: mockRestaurant.theme.textColor,
+  borderStyle: "solid",
+  qrColor: "#111111",
+  fontFamily: "Arial",
+  language: "en",
+  orientation: "portrait",
+  width: 100,
+  height: 150,
+  unit: "mm",
+  showMenuFeature: true,
+  showOrderFeature: true,
+  showWaiterFeature: true,
+  showBillFeature: true,
+  showFeedbackFeature: true,
+  showOffersFeature: true,
+  isDefault: true,
 };
 
 export const mockCategories: Category[] = [

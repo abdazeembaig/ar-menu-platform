@@ -1,14 +1,10 @@
 import { notFound } from "next/navigation";
 import { ItemDetail } from "@/components/menu/item-detail";
-import { mockItems } from "@/data/mock-menu";
+import { getItemStaticParams } from "@/lib/static-params";
 import { getMenuItem, getMenuPageData } from "@/services/menu-service";
 
 export function generateStaticParams() {
-  return mockItems.map((item) => ({
-    restaurantSlug: "brunch-cafe",
-    tableCode: "T12",
-    itemId: item.id,
-  }));
+  return getItemStaticParams();
 }
 
 interface ItemPageProps {

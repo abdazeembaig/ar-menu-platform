@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { OrderTrackerPage } from "@/components/order/order-tracker-page";
 import { getMenuPageData } from "@/services/menu-service";
+import { getDemoOrderStaticParams } from "@/lib/static-params";
 
 export function generateStaticParams() {
-  return [{ restaurantSlug: "brunch-cafe", tableCode: "T12", orderId: "demo-order" }];
+  return getDemoOrderStaticParams();
 }
 
 interface OrderRouteProps {

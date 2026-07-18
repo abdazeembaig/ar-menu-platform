@@ -1,4 +1,4 @@
-import { mockBranch, mockMenu, mockRestaurant, mockTable } from "@/data/mock-menu";
+import { mockBranch, mockMenu, mockRestaurant, mockTables } from "@/data/mock-menu";
 import type { MenuItem, MenuPageData } from "@/types/domain";
 
 export interface MenuRepository {
@@ -13,14 +13,15 @@ export class MockMenuRepository implements MenuRepository {
     }
 
     const normalizedTableCode = tableCode.toUpperCase();
-    if (normalizedTableCode !== mockTable.code) {
+    const matchedTable = mockTables.find((table) => table.code === normalizedTableCode && table.active !== false);
+    if (!matchedTable) {
       return null;
     }
 
     const table = {
-      ...mockTable,
+      ...matchedTable,
       code: normalizedTableCode,
-      number: normalizedTableCode.replace(/^T/i, "") || mockTable.number,
+      number: normalizedTableCode.replace(/^T/i, "") || matchedTable.number,
     };
 
     return {

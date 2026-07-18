@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import { CartPage } from "@/components/cart/cart-page";
 import { getMenuPageData } from "@/services/menu-service";
+import { getTableStaticParams } from "@/lib/static-params";
 
 export function generateStaticParams() {
-  return [{ restaurantSlug: "brunch-cafe", tableCode: "T12" }];
+  return getTableStaticParams();
 }
 
 interface CartRouteProps {

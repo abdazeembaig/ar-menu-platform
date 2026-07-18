@@ -53,6 +53,12 @@ export interface Table {
   branchId: string;
   code: string;
   number: string;
+  name?: LocalizedString;
+  area?: LocalizedString;
+  status?: "available" | "occupied" | "order_active" | "bill_requested" | "payment_pending" | "paid" | "cleaning" | "closed";
+  active?: boolean;
+  qrGeneratedAt?: string;
+  qrPrintedAt?: string;
 }
 
 export interface TableSession {
@@ -245,4 +251,38 @@ export interface BillRequest {
   tableCode: string;
   total: number;
   createdAt: string;
+}
+
+export type QrTemplateLanguage = "en" | "ar" | "both";
+export type QrTemplateUnit = "mm" | "cm";
+export type QrTemplateOrientation = "portrait" | "landscape";
+
+export interface QrTemplateSettings {
+  id: string;
+  restaurantId: string;
+  templateName: string;
+  logoUrl: string;
+  restaurantName: LocalizedString;
+  slogan: LocalizedString;
+  heading: LocalizedString;
+  instructionText: LocalizedString;
+  footerText: LocalizedString;
+  primaryColor: string;
+  backgroundColor: string;
+  textColor: string;
+  borderStyle: "solid" | "dashed" | "double" | "none";
+  qrColor: string;
+  fontFamily: string;
+  language: QrTemplateLanguage;
+  orientation: QrTemplateOrientation;
+  width: number;
+  height: number;
+  unit: QrTemplateUnit;
+  showMenuFeature: boolean;
+  showOrderFeature: boolean;
+  showWaiterFeature: boolean;
+  showBillFeature: boolean;
+  showFeedbackFeature: boolean;
+  showOffersFeature: boolean;
+  isDefault: boolean;
 }

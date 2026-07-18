@@ -16,7 +16,9 @@ const { calculateCartTotals } = await import("../lib/cart-math.ts");
 const { getDirection, dictionaries } = await import("../lib/i18n.ts");
 const { defaultModifiersForItem, toggleModifierOption, validateModifierSelections } = await import("../lib/modifiers.ts");
 const { mockItems } = await import("../data/mock-menu.ts");
+const { mockTables } = await import("../data/mock-menu.ts");
 const { withAssetBasePath } = await import("../lib/asset-path.ts");
+const { buildTableQrUrl, bulkQrFilename, hasReliableQrContrast, isValidQrDestination, qrFilename } = await import("../lib/qr-code-admin.ts");
 const { getMenuPageData } = await import("../services/menu-service.ts");
 const { submitMockOrder, submitServiceRequest, submitBillRequest } = await import("../services/client-order-service.ts");
 
@@ -30,6 +32,22 @@ test("resolves the valid restaurant and table context", async () => {
 test("returns invalid QR state for unknown table", async () => {
   const data = await getMenuPageData("brunch-cafe", "T99");
   assert.equal(data, null);
+});
+
+test("admin QR destinations resolve active table routes", async () => {
+  const table = mockTables.find((candidate) => candidate.code === "T1");
+  const data = await getMenuPageData("brunch-cafe", table.code);
+  const url = buildTableQrUrl("https://abdazeembaig.github.io", "/ar-menu-platform", "brunch-cafe", table.code);
+  assert.equal(data.table.code, "T1");
+  assert.equal(url, "https://abdazeembaig.github.io/ar-menu-platform/r/brunch-cafe/t/T1");
+  assert.equal(isValidQrDestination(url, "brunch-cafe", table), true);
+});
+
+test("admin QR filenames and scan contrast stay print friendly", () => {
+  assert.equal(qrFilename("Brunch Cafe", "T12", "png"), "brunch-cafe-table-T12-qr.png");
+  assert.equal(bulkQrFilename("Brunch Cafe", "pdf"), "brunch-cafe-all-table-qr-codes.pdf");
+  assert.equal(hasReliableQrContrast("#111111", "#ffffff"), true);
+  assert.equal(hasReliableQrContrast("#eeeeee", "#ffffff"), false);
 });
 
 test("cart calculations include variant, modifiers, service charge and tax", () => {
