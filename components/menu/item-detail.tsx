@@ -3,8 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, ShoppingBag, Timer, Utensils } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ARLaunchButton } from "@/components/ar/ar-launch-button";
+import type { ArCapabilityState } from "@/components/ar/ar-launch-button";
 import { DishModelViewer } from "@/components/ar/dish-model-viewer";
 import { useCart } from "@/components/cart/cart-provider";
 import { SessionCartConfigurer } from "@/components/cart/session-cart-configurer";
@@ -12,6 +13,7 @@ import { LanguageSelector } from "@/components/layout/language-selector";
 import { useLocale } from "@/components/layout/locale-provider";
 import { formatMoney } from "@/lib/cart-math";
 import { getText } from "@/lib/i18n";
+import { trackAnalyticsEvent } from "@/lib/analytics";
 import type { MenuItem, MenuPageData } from "@/types/domain";
 import { defaultModifiersForItem, toggleModifierOption, validateModifierSelections } from "@/lib/modifiers";
 import { TableContext } from "@/components/layout/table-context";
@@ -32,6 +34,8 @@ export function ItemDetail({ data, item }: ItemDetailProps) {
   const [instructions, setInstructions] = useState("");
   const [validationMessage, setValidationMessage] = useState("");
   const [viewerOpen, setViewerOpen] = useState(false);
+  const [arRequestId, setArRequestId] = useState(0);
+  const [arCapability, setArCapability] = useState<ArCapabilityState>("unknown");
   const basePath = `/r/${restaurant.slug}/t/${table.code}`;
 
   const selectedVariant = item.variants.find((variant) => variant.id === variantId);
@@ -63,6 +67,21 @@ export function ItemDetail({ data, item }: ItemDetailProps) {
     if (addItem({ item, quantity, variant: selectedVariant, modifiers: selectedModifiers, specialInstructions: instructions })) {
       setValidationMessage(t("addedToCart"));
     }
+  };
+
+  const openViewer = useCallback(() => {
+    setViewerOpen(true);
+    window.setTimeout(() => document.getElementById("dish-model-viewer")?.scrollIntoView({ behavior: "smooth" }), 0);
+  }, []);
+
+  const handleViewIn3D = () => {
+    trackAnalyticsEvent({ name: "3d_button_clicked", metadata: { itemId: item.id, assetId: item.threeDAsset?.id } });
+    openViewer();
+  };
+
+  const handleRequestAR = () => {
+    openViewer();
+    setArRequestId((current) => current + 1);
   };
 
   return (
@@ -162,16 +181,26 @@ export function ItemDetail({ data, item }: ItemDetailProps) {
                     <button
                       type="button"
                       className="touch-target flex-1 rounded-full border border-border bg-surface px-4 text-sm font-extrabold"
-                      onClick={() => {
-                        setViewerOpen(true);
-                        window.setTimeout(() => document.getElementById("dish-model-viewer")?.scrollIntoView({ behavior: "smooth" }), 0);
-                      }}
+                      onClick={handleViewIn3D}
                     >
                       {t("viewIn3D")}
                     </button>
-                    <ARLaunchButton asset={item.threeDAsset} flags={restaurant.featureFlags} className="flex-1" />
+                    <ARLaunchButton
+                      asset={item.threeDAsset}
+                      flags={restaurant.featureFlags}
+                      className="flex-1"
+                      capability={viewerOpen ? arCapability : "unknown"}
+                      onRequestAR={handleRequestAR}
+                    />
                   </div>
-                  {viewerOpen ? <DishModelViewer asset={item.threeDAsset} flags={restaurant.featureFlags} /> : null}
+                  {viewerOpen ? (
+                    <DishModelViewer
+                      asset={item.threeDAsset}
+                      flags={restaurant.featureFlags}
+                      arRequestId={arRequestId}
+                      onArCapabilityChange={setArCapability}
+                    />
+                  ) : null}
                 </>
               ) : (
                 <div className="rounded-[var(--radius-brand)] border border-dashed border-border bg-surface p-5 text-sm font-semibold text-muted">

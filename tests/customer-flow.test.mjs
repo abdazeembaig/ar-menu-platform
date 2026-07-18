@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
 
 const storage = new Map();
 global.window = {
@@ -95,6 +96,23 @@ test("RealityScan asset is scoped to the Classic Smash Burger", () => {
 
 test("asset paths preserve local public URLs", () => {
   assert.equal(withAssetBasePath("/models/brunch-cafe/classic-smash-burger/model.glb"), "/models/brunch-cafe/classic-smash-burger/model.glb");
+});
+
+test("service worker does not precache large dish models", () => {
+  const serviceWorker = readFileSync("public/sw.js", "utf8");
+  const appShellMatch = serviceWorker.match(/const APP_SHELL = \[([\s\S]*?)\];/);
+  assert.ok(appShellMatch);
+  assert.equal(appShellMatch[1].includes("model.glb"), false);
+  assert.match(serviceWorker, /MODEL_CACHE_NAME/);
+  assert.match(serviceWorker, /MAX_MODEL_CACHE_ITEMS/);
+});
+
+test("self-hosted model viewer supports future USDZ handoff", () => {
+  assert.equal(existsSync("public/vendor/model-viewer/4.1.0/model-viewer.min.js"), true);
+  const viewer = readFileSync("public/models/brunch-cafe/classic-smash-burger/viewer.html", "utf8");
+  assert.match(viewer, /vendor\/model-viewer\/4\.1\.0\/model-viewer\.min\.js/);
+  assert.match(viewer, /model\.usdz/);
+  assert.match(viewer, /ios-src/);
 });
 
 test("mock order success and failure", async () => {
