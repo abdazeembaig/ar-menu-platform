@@ -1,19 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import { CartProvider } from "@/components/cart/cart-provider";
 import { LocaleProvider } from "@/components/layout/locale-provider";
 import { PwaRegister } from "@/components/layout/pwa-register";
 import "./globals.css";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "AR Menu Platform",
@@ -30,18 +19,25 @@ export const viewport: Viewport = {
   themeColor: "#FFFDF8",
 };
 
+const previewBuildSha = process.env.NEXT_PUBLIC_PREVIEW_BUILD_SHA;
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" dir="ltr" className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
+    <html lang="en" dir="ltr" className="h-full antialiased">
       <body className="min-h-full bg-background text-primary">
         <LocaleProvider>
           <CartProvider>
             <PwaRegister />
             {children}
+            {previewBuildSha ? (
+              <div className="px-4 pb-4 text-center text-[11px] font-bold text-muted/70">
+                Preview build: {previewBuildSha.slice(0, 7)}
+              </div>
+            ) : null}
           </CartProvider>
         </LocaleProvider>
       </body>

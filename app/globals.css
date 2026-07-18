@@ -9,6 +9,8 @@
   --color-border: #e9e1d8;
   --radius-brand: 18px;
   --shadow-soft: 0 18px 45px rgb(36 30 27 / 0.09);
+  --font-geist-sans: Arial, Helvetica, sans-serif;
+  --font-geist-mono: "Courier New", Courier, monospace;
 }
 
 @theme inline {
